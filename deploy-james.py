@@ -64,7 +64,7 @@ def deploy_wp_bp():
     data =  {
               "blueprintId": bpid,
               "deploymentName": "james-apache",
-              "description": "Deployed Machine with Apache and james",
+              "description": "Deployed Machine with Apache and James",
               "projectId": "4b71f05c-691a-408f-9d5d-87aa0ec70c58"
             }
     response = requests.post(api_url, headers=headers1, data=json.dumps(data), verify=False)
@@ -73,5 +73,60 @@ def deploy_wp_bp():
     else:
         return None
 
+def get_deplopyment_status():
+    api_url = '{0}/deployment/api/deployments'.format(api_url_base)
+    response = requests.get(api_url, headers=headers1, verify=False)
+    if response.status_code == 200:
+        json_data = json.loads(response.content.decode('utf-8'))
+        dep_id = extract_values(json_data,'id')
+        for x in dep_id:
+            api_url2 = '{0}/deployment/api/deployments/{1}'.format(api_url_base,x)
+            response2 = requests.get(api_url2, headers=headers1, verify=False)
+            if response2.status_code == 200:
+                json_data2 = json.loads(response2.content.decode('utf-8'))
+                dep_name = json_data2 ['name']
+                if dep_name == 'james-apache':
+                    status = json_data2 ['status']
+                    return status
+
+def get_dep_id():
+    api_url = '{0}/deployment/api/deployments'.format(api_url_base)
+    response = requests.get(api_url, headers=headers1, verify=False)
+    if response.status_code == 200:
+        json_data = json.loads(response.content.decode('utf-8'))
+        dep_id = extract_values(json_data,'id')
+        for x in dep_id:
+            api_url2 = '{0}/deployment/api/deployments/{1}'.format(api_url_base,x)
+            response2 = requests.get(api_url2, headers=headers1, verify=False)
+            if response2.status_code == 200:
+                json_data2 = json.loads(response2.content.decode('utf-8'))
+                dep_name = json_data2 ['name']
+                if dep_name == 'james-apache':
+                    return x
+
+def get_dep_ip(dep_id):
+    api_url = '{0}/deployment/api/deployments/{1}/resources'.format(api_url_base,dep_id)
+    response = requests.get(api_url, headers=headers1, verify=False)
+    if response.status_code == 200:
+        json_data = json.loads(response.content.decode('utf-8'))
+        dep_ip = extract_values(json_data,'address')
+        return dep_ip
+
 print('Starting James Deployment')
 deploy_wp_bp()
+
+print("Get Deployment Status")
+while True:
+    time.sleep(10)
+    status = get_deplopyment_status()
+    print(get_deplopyment_status())
+    if status == 'CREATE_SUCCESSFUL':
+        print('Deployment complete')
+        break
+
+dep_id = get_dep_id()
+ip = get_dep_ip(dep_id)
+print("Deployment IP: " + ip[1])
+ip = ip[1]
+with open('james.txt', 'w') as outfile:
+    json.dump(ip, outfile)
